@@ -11,14 +11,13 @@ import com.alpacaflow.meditrackplatform.iam.domain.services.UserCommandService;
 import com.alpacaflow.meditrackplatform.iam.infrastructure.persistence.jpa.repositories.UserRepository;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 
 /**
  * Implementation of the UserCommandService interface.
  * <p>This class is responsible for handling the commands related to the User aggregate.</p>
- * 
+ *
  * @see UserCommandService
  * @see UserRepository
  */
@@ -71,18 +70,13 @@ public class UserCommandServiceImpl implements UserCommandService {
      * @throws RuntimeException if user with email already exists
      */
     @Override
-    @Transactional
     public Optional<User> handle(SignUpCommand command) {
         if (userRepository.existsByEmail(command.email()))
             throw new RuntimeException("Email already exists");
-        
-        var hashedPassword = hashingService.encode(command.password());
-        var user = new User(command.email(), hashedPassword, command.role());
-        var savedUser = userRepository.save(user);
-        
-        // If role is admin, create organization and admin entities
-        if ("admin".equalsIgnoreCase(command.role())) {
-            // Validate required fields for admin sign-up
+
+        var isAdmin = "admin".equalsIgnoreCase(command.role());
+        if (isAdmin) {
+            // Validate required fields for admin sign-up before persisting anything
             if (command.firstName() == null || command.firstName().isBlank()) {
                 throw new RuntimeException("First name is required for admin sign-up");
             }
@@ -95,22 +89,29 @@ public class UserCommandServiceImpl implements UserCommandService {
             if (command.organizationType() == null || command.organizationType().isBlank()) {
                 throw new RuntimeException("Organization type is required for admin sign-up");
             }
-            
-            // Create organization in the Organization Service
-            var organizationId = externalOrganizationService.createOrganization(
-                    command.organizationName(),
-                    command.organizationType()
-            );
-
-            // Create admin linked to the organization and user
-            externalOrganizationService.createAdmin(
-                    organizationId,
-                    savedUser.getId(),
-                    command.firstName(),
-                    command.lastName()
-            );
         }
-        
+
+        // Not wrapped in a local transaction: the user must be committed before the
+        // Organization Service calls back to the IAM Service to validate it.
+        var hashedPassword = hashingService.encode(command.password());
+        var savedUser = userRepository.save(new User(command.email(), hashedPassword, command.role()));
+
+        if (isAdmin) {
+            try {
+                // Token of the new user, used to authorize the calls to the Organization Service
+                var token = tokenService.generateToken(savedUser.getEmail());
+                var organizationId = externalOrganizationService.createOrganization(
+                        command.organizationName(), command.organizationType(), token);
+                externalOrganizationService.createAdmin(
+                        organizationId, savedUser.getId(), command.firstName(), command.lastName(), token);
+            } catch (RuntimeException e) {
+                // Compensation: there is no distributed transaction between services,
+                // so the user is removed if the organization could not be created.
+                userRepository.delete(savedUser);
+                throw e;
+            }
+        }
+
         return Optional.of(savedUser);
     }
 

@@ -1,6 +1,7 @@
 package com.alpacaflow.meditrackplatform.iam.application.internal.outboundservices.acl;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
@@ -29,12 +30,14 @@ public class ExternalOrganizationService {
      * Creates an organization in the Organization Service.
      * @param name the organization name
      * @param type the organization type ("clinic" or "resident")
+     * @param bearerToken JWT of the user being registered, so the Organization Service can authorize the call
      * @return the id of the created organization
      */
-    public Long createOrganization(String name, String type) {
+    public Long createOrganization(String name, String type, String bearerToken) {
         try {
             var response = restClient.post()
                     .uri("/api/v1/organizations")
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + bearerToken)
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(Map.of("name", name, "type", type))
                     .retrieve()
@@ -53,11 +56,13 @@ public class ExternalOrganizationService {
      * @param userId the IAM user id of the administrator
      * @param firstName the administrator first name
      * @param lastName the administrator last name
+     * @param bearerToken JWT of the user being registered, so the Organization Service can authorize the call
      */
-    public void createAdmin(Long organizationId, Long userId, String firstName, String lastName) {
+    public void createAdmin(Long organizationId, Long userId, String firstName, String lastName, String bearerToken) {
         try {
             restClient.post()
                     .uri("/api/v1/admins")
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + bearerToken)
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(Map.of(
                             "organizationId", organizationId,
