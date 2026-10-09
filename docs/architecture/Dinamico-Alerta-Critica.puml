@@ -1,0 +1,59 @@
+@startuml
+set separator none
+title Vista dinámica | Flujo de una alerta crítica (Iteración 2)
+
+left to right direction
+
+!include <C4/C4>
+!include <C4/C4_Context>
+!include <C4/C4_Container>
+!include <C4/C4_Component>
+
+skinparam backgroundColor #141414
+skinparam defaultFontName Arial
+skinparam titleFontColor #E6E6E6
+skinparam titleFontSize 20
+skinparam titleFontStyle bold
+skinparam ArrowFontColor #C8C8C8
+skinparam dpi 150
+UpdateRelStyle($textColor="#C8C8C8", $lineColor="#8A8A8A")
+UpdateBoundaryStyle($elementName="system", $fontColor="#BFBFBF", $borderColor="#7A7A7A", $bgColor="transparent")
+UpdateBoundaryStyle($elementName="container", $fontColor="#BFBFBF", $borderColor="#7A7A7A", $bgColor="transparent")
+UpdateBoundaryStyle($fontColor="#BFBFBF", $borderColor="#7A7A7A", $bgColor="transparent")
+
+
+
+Container_Boundary("MediTrack.MonitoringService_boundary", "Monitoring Service", $tags="") {
+  Component(MediTrack.MonitoringService.TelemetryConsumer, "Telemetry Consumer", $techn="Azure SDK EventProcessorClient", $descr="Consume las lecturas desde el endpoint compatible con Event Hubs de IoT Hub, con checkpoints por partición.", $tags="", $link="")
+  Component(MediTrack.MonitoringService.ReadingValidator, "Reading Validator", $techn="Spring Bean", $descr="Valida rangos físicos y formato, normaliza unidades y descarta duplicados (deviceId + timestamp).", $tags="", $link="")
+  Component(MediTrack.MonitoringService.DeviceDirectory, "Device Directory", $techn="Spring Bean, caché en memoria", $descr="Read model local deviceId -> adulto mayor y organización, actualizado por eventos DeviceAssigned.", $tags="", $link="")
+  Component(MediTrack.MonitoringService.AlertRuleEngine, "Alert Rule Engine", $techn="Spring Bean", $descr="Evalúa umbrales por tipo de signo vital y detecta caídas (patrón Strategy).", $tags="", $link="")
+  Component(MediTrack.MonitoringService.VitalSignRepository, "Vital Sign Repository", $techn="Spring Data JPA", $descr="Persiste y consulta lecturas en tablas particionadas por fecha.", $tags="", $link="")
+  Component(MediTrack.MonitoringService.AlertRepository, "Alert Repository", $techn="Spring Data JPA", $descr="Persiste alertas y su ciclo de vida.", $tags="", $link="")
+  Component(MediTrack.MonitoringService.AlertPublisher, "Alert Publisher", $techn="Spring Cloud Azure Service Bus", $descr="Publica el evento AlertRaised en el topic de alertas.", $tags="", $link="")
+}
+
+System_Ext(Parcheinteligentesimulado, "Parche inteligente (simulado)", $descr="Dispositivo IoT que mide signos vitales y detecta caídas. En esta etapa se emula con un simulador de software.", $tags="", $link="")
+System_Ext(AzureCommunicationServicesEmail, "Azure Communication Services Email", $descr="Servicio gestionado de envío de correos de alerta y de credenciales.", $tags="", $link="")
+Container(MediTrack.AplicacionWeb, "Aplicación Web", $techn="Angular, Azure Static Web Apps", $descr="SPA para allegados, médicos, cuidadores y administradores: dashboard, signos vitales, alertas y gestión.", $tags="", $link="")
+Container(MediTrack.NotificationService, "Notification Service", $techn="Java 21, Spring Boot, Azure Container Apps", $descr="Entrega de alertas en tiempo real al navegador y por correo electrónico.", $tags="", $link="")
+ContainerQueue(MediTrack.AzureServiceBus, "Azure Service Bus", $techn="Azure Service Bus, AMQP", $descr="Bus de eventos de dominio entre microservicios (topics y suscripciones, con dead-letter queue).", $tags="", $link="")
+ContainerQueue(MediTrack.AzureIoTHub, "Azure IoT Hub", $techn="Azure IoT Hub, MQTT", $descr="Broker MQTT gestionado con identidad por dispositivo; expone un endpoint compatible con Event Hubs.", $tags="", $link="")
+Container(MediTrack.AzureWebPubSub, "Azure Web PubSub", $techn="Azure Web PubSub", $descr="Push de alertas en tiempo real al navegador mediante WebSocket.", $tags="", $link="")
+
+Rel(Parcheinteligentesimulado, MediTrack.AzureIoTHub, "1. Publica lectura anómala o evento de caída", $techn="MQTT/TLS", $tags="", $link="")
+Rel(MediTrack.MonitoringService.TelemetryConsumer, MediTrack.AzureIoTHub, "2. Lee el mensaje de la partición", $techn="AMQP (Event Hubs-compatible)", $tags="", $link="")
+Rel(MediTrack.MonitoringService.TelemetryConsumer, MediTrack.MonitoringService.ReadingValidator, "3. Entrega lectura", $techn="", $tags="", $link="")
+Rel(MediTrack.MonitoringService.ReadingValidator, MediTrack.MonitoringService.DeviceDirectory, "4. Resuelve adulto mayor y organización", $techn="", $tags="", $link="")
+Rel(MediTrack.MonitoringService.ReadingValidator, MediTrack.MonitoringService.VitalSignRepository, "5. Persiste lectura", $techn="", $tags="", $link="")
+Rel(MediTrack.MonitoringService.ReadingValidator, MediTrack.MonitoringService.AlertRuleEngine, "6. Evalúa reglas", $techn="", $tags="", $link="")
+Rel(MediTrack.MonitoringService.AlertRuleEngine, MediTrack.MonitoringService.AlertRepository, "7. Registra alerta (RAISED)", $techn="", $tags="", $link="")
+Rel(MediTrack.MonitoringService.AlertRuleEngine, MediTrack.MonitoringService.AlertPublisher, "8. Solicita publicación", $techn="", $tags="", $link="")
+Rel(MediTrack.MonitoringService.AlertPublisher, MediTrack.AzureServiceBus, "9. Publica AlertRaised", $techn="AMQP", $tags="", $link="")
+Rel(MediTrack.NotificationService, MediTrack.AzureServiceBus, "10. Consume AlertRaised", $techn="AMQP", $tags="", $link="")
+Rel(MediTrack.NotificationService, MediTrack.AzureWebPubSub, "11. Envía alerta a los grupos destinatarios", $techn="HTTPS", $tags="", $link="")
+Rel(MediTrack.AzureWebPubSub, MediTrack.AplicacionWeb, "12. Muestra alerta en el dashboard", $techn="WebSocket", $tags="", $link="")
+Rel(MediTrack.NotificationService, AzureCommunicationServicesEmail, "13. Envía correo de alerta", $techn="HTTPS", $tags="", $link="")
+
+
+@enduml

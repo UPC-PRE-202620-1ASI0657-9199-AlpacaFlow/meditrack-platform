@@ -1,0 +1,49 @@
+@startuml
+set separator none
+title L3 — Componentes | Notification Service (Iteración 2)
+
+left to right direction
+
+!include <C4/C4>
+!include <C4/C4_Context>
+!include <C4/C4_Container>
+!include <C4/C4_Component>
+
+skinparam backgroundColor #141414
+skinparam defaultFontName Arial
+skinparam titleFontColor #E6E6E6
+skinparam titleFontSize 20
+skinparam titleFontStyle bold
+skinparam ArrowFontColor #C8C8C8
+skinparam dpi 150
+UpdateRelStyle($textColor="#C8C8C8", $lineColor="#8A8A8A")
+UpdateBoundaryStyle($elementName="system", $fontColor="#BFBFBF", $borderColor="#7A7A7A", $bgColor="transparent")
+UpdateBoundaryStyle($elementName="container", $fontColor="#BFBFBF", $borderColor="#7A7A7A", $bgColor="transparent")
+UpdateBoundaryStyle($fontColor="#BFBFBF", $borderColor="#7A7A7A", $bgColor="transparent")
+
+
+
+System_Ext(AzureCommunicationServicesEmail, "Azure Communication Services Email", $descr="Servicio gestionado de envío de correos de alerta y de credenciales.", $tags="", $link="")
+ContainerQueue(MediTrack.AzureServiceBus, "Azure Service Bus", $techn="Azure Service Bus, AMQP", $descr="Bus de eventos de dominio entre microservicios (topics y suscripciones, con dead-letter queue).", $tags="", $link="")
+Container(MediTrack.AzureWebPubSub, "Azure Web PubSub", $techn="Azure Web PubSub", $descr="Push de alertas en tiempo real al navegador mediante WebSocket.", $tags="", $link="")
+ContainerDb(MediTrack.NotificationDB, "Notification DB", $techn="Azure Database for MySQL", $descr="Registro de notificaciones enviadas.", $tags="", $link="")
+
+Container_Boundary("MediTrack.NotificationService_boundary", "Notification Service", $tags="") {
+  Component(MediTrack.NotificationService.AlertEventListener, "Alert Event Listener", $techn="Spring Cloud Azure Service Bus", $descr="Consume AlertRaised desde la suscripción del topic de alertas.", $tags="", $link="")
+  Component(MediTrack.NotificationService.RecipientResolver, "Recipient Resolver", $techn="Spring Bean", $descr="Determina destinatarios (allegados, médico o cuidador asignado) desde un read model alimentado por eventos.", $tags="", $link="")
+  Component(MediTrack.NotificationService.RealtimeNotifier, "Real-time Notifier", $techn="Azure Web PubSub SDK", $descr="Envía la alerta al grupo de la organización y de los allegados.", $tags="", $link="")
+  Component(MediTrack.NotificationService.EmailNotifier, "Email Notifier", $techn="Azure Communication Services SDK", $descr="Envía correo para alertas críticas y caídas.", $tags="", $link="")
+  Component(MediTrack.NotificationService.NotificationLogRepository, "Notification Log Repository", $techn="Spring Data JPA", $descr="Registra cada entrega para trazabilidad y auditoría.", $tags="", $link="")
+}
+
+Rel(MediTrack.NotificationService.AlertEventListener, MediTrack.NotificationService.RealtimeNotifier, "Notifica en tiempo real", $techn="", $tags="", $link="")
+Rel(MediTrack.NotificationService.AlertEventListener, MediTrack.NotificationService.EmailNotifier, "Notifica por correo (críticas y caídas)", $techn="", $tags="", $link="")
+Rel(MediTrack.NotificationService.AlertEventListener, MediTrack.NotificationService.NotificationLogRepository, "Registra entrega", $techn="", $tags="", $link="")
+Rel(MediTrack.NotificationService.RealtimeNotifier, MediTrack.AzureWebPubSub, "Envía a grupos", $techn="HTTPS", $tags="", $link="")
+Rel(MediTrack.NotificationService.EmailNotifier, AzureCommunicationServicesEmail, "Envía correo", $techn="HTTPS", $tags="", $link="")
+Rel(MediTrack.NotificationService.NotificationLogRepository, MediTrack.NotificationDB, "Escribe", $techn="JDBC", $tags="", $link="")
+Rel(MediTrack.NotificationService.AlertEventListener, MediTrack.AzureServiceBus, "Consume AlertRaised", $techn="AMQP", $tags="", $link="")
+Rel(MediTrack.NotificationService.AlertEventListener, MediTrack.NotificationService.RecipientResolver, "Solicita destinatarios", $techn="", $tags="", $link="")
+
+
+@enduml

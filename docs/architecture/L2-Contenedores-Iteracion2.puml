@@ -1,0 +1,88 @@
+@startuml
+set separator none
+title L2 — Contenedores | Iteración 2: pipeline de telemetría y alertas
+
+left to right direction
+
+!include <C4/C4>
+!include <C4/C4_Context>
+!include <C4/C4_Container>
+
+skinparam backgroundColor #141414
+skinparam defaultFontName Arial
+skinparam titleFontColor #E6E6E6
+skinparam titleFontSize 20
+skinparam titleFontStyle bold
+skinparam ArrowFontColor #C8C8C8
+skinparam dpi 150
+UpdateRelStyle($textColor="#C8C8C8", $lineColor="#8A8A8A")
+UpdateBoundaryStyle($elementName="system", $fontColor="#BFBFBF", $borderColor="#7A7A7A", $bgColor="transparent")
+UpdateBoundaryStyle($elementName="container", $fontColor="#BFBFBF", $borderColor="#7A7A7A", $bgColor="transparent")
+UpdateBoundaryStyle($fontColor="#BFBFBF", $borderColor="#7A7A7A", $bgColor="transparent")
+
+
+
+Person(Allegado, "Allegado", $descr="Familiar que monitorea a distancia al adulto mayor y recibe alertas.", $tags="", $link="")
+Person(Medico, "Médico", $descr="Personal médico de clínica que da seguimiento a los adultos mayores asignados.", $tags="", $link="")
+Person(Cuidador, "Cuidador", $descr="Personal de casa de reposo que supervisa a varios residentes por turno.", $tags="", $link="")
+Person(Administradordeorganizacion, "Administrador de organización", $descr="Gestiona la clínica o casa de reposo: personal, adultos mayores y asignaciones.", $tags="", $link="")
+System_Ext(Parcheinteligentesimulado, "Parche inteligente (simulado)", $descr="Dispositivo IoT que mide signos vitales y detecta caídas. En esta etapa se emula con un simulador de software.", $tags="", $link="")
+System_Ext(AzureCommunicationServicesEmail, "Azure Communication Services Email", $descr="Servicio gestionado de envío de correos de alerta y de credenciales.", $tags="", $link="")
+
+System_Boundary("MediTrack_boundary", "MediTrack", $tags="") {
+  Container(MediTrack.APIGateway, "API Gateway", $techn="Spring Cloud Gateway, Azure Container Apps", $descr="Punto único de entrada: enruta peticiones, valida JWT y aplica rate limiting.", $tags="", $link="")
+  Container(MediTrack.IAMService, "IAM Service", $techn="Java 21, Spring Boot, Azure Container Apps", $descr="Registro, autenticación, roles y emisión de tokens JWT.", $tags="", $link="")
+  Container(MediTrack.SubscriptionService, "Subscription Service", $techn="Java 21, Spring Boot, Azure Container Apps", $descr="Planes Free, Premium y Enterprise y funcionalidades habilitadas por plan.", $tags="", $link="")
+  Container(MediTrack.OrganizationService, "Organization Service", $techn="Java 21, Spring Boot, Azure Container Apps", $descr="Clínicas, casas de reposo, médicos, cuidadores y asignaciones de adultos mayores.", $tags="", $link="")
+  Container(MediTrack.PatientService, "Patient Service", $techn="Java 21, Spring Boot, Azure Container Apps", $descr="Adultos mayores, perfiles clínicos básicos y vínculo con allegados.", $tags="", $link="")
+  Container(MediTrack.DeviceService, "Device Service", $techn="Java 21, Spring Boot, Azure Container Apps", $descr="Registro de parches y su vinculación con adultos mayores.", $tags="", $link="")
+  Container(MediTrack.MonitoringService, "Monitoring Service", $techn="Java 21, Spring Boot, Azure Container Apps", $descr="Ingesta y consulta de signos vitales, evaluación de reglas y generación de alertas.", $tags="", $link="")
+  Container(MediTrack.NotificationService, "Notification Service", $techn="Java 21, Spring Boot, Azure Container Apps", $descr="Entrega de alertas en tiempo real al navegador y por correo electrónico.", $tags="", $link="")
+  ContainerQueue(MediTrack.AzureServiceBus, "Azure Service Bus", $techn="Azure Service Bus, AMQP", $descr="Bus de eventos de dominio entre microservicios (topics y suscripciones, con dead-letter queue).", $tags="", $link="")
+  ContainerQueue(MediTrack.AzureIoTHub, "Azure IoT Hub", $techn="Azure IoT Hub, MQTT", $descr="Broker MQTT gestionado con identidad por dispositivo; expone un endpoint compatible con Event Hubs.", $tags="", $link="")
+  Container(MediTrack.AzureWebPubSub, "Azure Web PubSub", $techn="Azure Web PubSub", $descr="Push de alertas en tiempo real al navegador mediante WebSocket.", $tags="", $link="")
+  ContainerDb(MediTrack.CheckpointStore, "Checkpoint Store", $techn="Azure Blob Storage", $descr="Guarda el avance de lectura por partición para reanudar sin pérdida.", $tags="", $link="")
+  ContainerDb(MediTrack.IAMDB, "IAM DB", $techn="Azure Database for MySQL", $descr="Usuarios, credenciales (hash) y roles.", $tags="", $link="")
+  ContainerDb(MediTrack.SubscriptionDB, "Subscription DB", $techn="Azure Database for MySQL", $descr="Planes y suscripciones.", $tags="", $link="")
+  ContainerDb(MediTrack.OrganizationDB, "Organization DB", $techn="Azure Database for MySQL", $descr="Organizaciones, personal y asignaciones.", $tags="", $link="")
+  ContainerDb(MediTrack.PatientDB, "Patient DB", $techn="Azure Database for MySQL", $descr="Adultos mayores y allegados (datos sensibles cifrados).", $tags="", $link="")
+  ContainerDb(MediTrack.DeviceDB, "Device DB", $techn="Azure Database for MySQL", $descr="Parches y vinculaciones.", $tags="", $link="")
+  ContainerDb(MediTrack.MonitoringDB, "Monitoring DB", $techn="Azure Database for MySQL 8", $descr="Lecturas de signos vitales (particionadas por fecha) y alertas.", $tags="", $link="")
+  ContainerDb(MediTrack.NotificationDB, "Notification DB", $techn="Azure Database for MySQL", $descr="Registro de notificaciones enviadas.", $tags="", $link="")
+  Container(MediTrack.AplicacionWeb, "Aplicación Web", $techn="Angular, Azure Static Web Apps", $descr="SPA para allegados, médicos, cuidadores y administradores: dashboard, signos vitales, alertas y gestión.", $tags="", $link="")
+}
+
+Rel(MediTrack.NotificationService, MediTrack.AzureWebPubSub, "Envía a grupos", $techn="HTTPS", $tags="", $link="")
+Rel(MediTrack.AzureWebPubSub, MediTrack.AplicacionWeb, "Entrega alerta", $techn="WebSocket", $tags="", $link="")
+Rel(Allegado, MediTrack.AplicacionWeb, "Consulta signos vitales y recibe alertas", $techn="HTTPS", $tags="", $link="")
+Rel(Medico, MediTrack.AplicacionWeb, "Da seguimiento a pacientes asignados", $techn="HTTPS", $tags="", $link="")
+Rel(Cuidador, MediTrack.AplicacionWeb, "Supervisa residentes y atiende alertas", $techn="HTTPS", $tags="", $link="")
+Rel(Administradordeorganizacion, MediTrack.AplicacionWeb, "Gestiona personal, adultos mayores y asignaciones", $techn="HTTPS", $tags="", $link="")
+Rel(Parcheinteligentesimulado, MediTrack.AzureIoTHub, "Publica lecturas y eventos de caída", $techn="MQTT/TLS", $tags="", $link="")
+Rel(MediTrack.AplicacionWeb, MediTrack.APIGateway, "Consume API REST", $techn="HTTPS/JSON", $tags="", $link="")
+Rel(MediTrack.APIGateway, MediTrack.IAMService, "Enruta /api/v1/auth, /users", $techn="HTTPS", $tags="", $link="")
+Rel(MediTrack.APIGateway, MediTrack.SubscriptionService, "Enruta /api/v1/plans", $techn="HTTPS", $tags="", $link="")
+Rel(MediTrack.APIGateway, MediTrack.OrganizationService, "Enruta /api/v1/organizations", $techn="HTTPS", $tags="", $link="")
+Rel(MediTrack.APIGateway, MediTrack.PatientService, "Enruta /api/v1/senior-citizens, /relatives", $techn="HTTPS", $tags="", $link="")
+Rel(MediTrack.APIGateway, MediTrack.DeviceService, "Enruta /api/v1/devices", $techn="HTTPS", $tags="", $link="")
+Rel(MediTrack.APIGateway, MediTrack.MonitoringService, "Enruta signos vitales y alertas", $techn="HTTPS", $tags="", $link="")
+Rel(MediTrack.IAMService, MediTrack.IAMDB, "Lee/escribe", $techn="JDBC", $tags="", $link="")
+Rel(MediTrack.SubscriptionService, MediTrack.SubscriptionDB, "Lee/escribe", $techn="JDBC", $tags="", $link="")
+Rel(MediTrack.OrganizationService, MediTrack.OrganizationDB, "Lee/escribe", $techn="JDBC", $tags="", $link="")
+Rel(MediTrack.PatientService, MediTrack.PatientDB, "Lee/escribe", $techn="JDBC", $tags="", $link="")
+Rel(MediTrack.DeviceService, MediTrack.DeviceDB, "Lee/escribe", $techn="JDBC", $tags="", $link="")
+Rel(MediTrack.NotificationService, MediTrack.NotificationDB, "Lee/escribe", $techn="JDBC", $tags="", $link="")
+Rel(MediTrack.IAMService, MediTrack.AzureServiceBus, "Publica UserRegistered, AdminAccountCreated / consume OrganizationRegistered", $techn="AMQP", $tags="", $link="")
+Rel(MediTrack.OrganizationService, MediTrack.AzureServiceBus, "Publica OrganizationRegistered, PatientAssigned", $techn="AMQP", $tags="", $link="")
+Rel(MediTrack.PatientService, MediTrack.AzureServiceBus, "Publica SeniorCitizenRegistered, RelativeLinked", $techn="AMQP", $tags="", $link="")
+Rel(MediTrack.DeviceService, MediTrack.AzureServiceBus, "Publica DeviceAssigned", $techn="AMQP", $tags="", $link="")
+Rel(MediTrack.SubscriptionService, MediTrack.AzureServiceBus, "Consume UserRegistered", $techn="AMQP", $tags="", $link="")
+Rel(MediTrack.NotificationService, MediTrack.AzureServiceBus, "Consume AlertRaised, AdminAccountCreated y eventos de asignación", $techn="AMQP", $tags="", $link="")
+Rel(MediTrack.NotificationService, AzureCommunicationServicesEmail, "Envía correos", $techn="HTTPS", $tags="", $link="")
+Rel(MediTrack.MonitoringService, MediTrack.MonitoringDB, "Lee/escribe lecturas y alertas", $techn="JDBC", $tags="", $link="")
+Rel(MediTrack.MonitoringService, MediTrack.AzureServiceBus, "Publica AlertRaised / consume DeviceAssigned", $techn="AMQP", $tags="", $link="")
+Rel(MediTrack.MonitoringService, MediTrack.AzureIoTHub, "Lee lecturas", $techn="AMQP (Event Hubs-compatible)", $tags="", $link="")
+Rel(MediTrack.MonitoringService, MediTrack.CheckpointStore, "Guarda checkpoints", $techn="HTTPS", $tags="", $link="")
+
+
+@enduml
