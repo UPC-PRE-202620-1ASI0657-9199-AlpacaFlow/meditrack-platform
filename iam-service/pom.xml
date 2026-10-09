@@ -12,7 +12,7 @@
     <artifactId>iam-service</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>iam-service</name>
-    <description>MediTrack IAM Service: registro, autenticación y emisión de tokens JWT</description>
+    <description>MediTrack IAM Service: user registration, authentication and JWT issuance</description>
     <url/>
     <licenses>
         <license/>
