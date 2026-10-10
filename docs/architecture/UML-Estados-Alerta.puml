@@ -1,0 +1,48 @@
+@startuml
+title UML — Diagrama de estados | Ciclo de vida de una alerta (Iteración 2)
+skinparam backgroundColor #141414
+skinparam defaultFontName Arial
+skinparam titleFontColor #E6E6E6
+skinparam titleFontSize 20
+skinparam dpi 150
+skinparam ArrowColor #9A9A9A
+skinparam ArrowFontColor #C8C8C8
+skinparam state {
+  BackgroundColor #438DD5
+  BorderColor #2E6DA4
+  FontColor #FFFFFF
+  AttributeFontColor #FFFFFF
+  StartColor #E6E6E6
+  EndColor #E6E6E6
+}
+skinparam note {
+  BackgroundColor #2A2A2A
+  BorderColor #7A7A7A
+  FontColor #DDDDDD
+}
+
+[*] --> RAISED : Regla incumplida o caída detectada\n[no existe alerta abierta del mismo tipo\npara el adulto mayor en los últimos 10 min]
+
+state RAISED : entry / persistir alerta y publicar AlertRaised
+state ACKNOWLEDGED : entry / registrar usuario y hora de atención
+state RESOLVED : entry / registrar observación de cierre
+state DISMISSED : entry / registrar motivo (falsa alarma)
+
+RAISED --> ACKNOWLEDGED : confirmar atención\n(médico, cuidador o allegado)
+RAISED --> DISMISSED : marcar como falsa alarma
+ACKNOWLEDGED --> RESOLVED : cerrar alerta
+ACKNOWLEDGED --> DISMISSED : verificar falsa alarma
+RESOLVED --> [*]
+DISMISSED --> [*]
+
+note right of RAISED
+  Lecturas anómalas posteriores del mismo tipo
+  dentro de la ventana de 10 min se agregan
+  a la alerta abierta (supresión de duplicados).
+end note
+
+note bottom of DISMISSED
+  La tasa de DISMISSED alimenta la calibración
+  de umbrales del Alert Rule Engine.
+end note
+@enduml

@@ -1,0 +1,42 @@
+@startuml
+set separator none
+title L1 — Contexto | MediTrack
+
+left to right direction
+
+!include <C4/C4>
+!include <C4/C4_Context>
+
+skinparam backgroundColor #141414
+skinparam defaultFontName Arial
+skinparam titleFontColor #E6E6E6
+skinparam titleFontSize 20
+skinparam titleFontStyle bold
+skinparam ArrowFontColor #C8C8C8
+skinparam dpi 150
+UpdateRelStyle($textColor="#C8C8C8", $lineColor="#8A8A8A")
+UpdateBoundaryStyle($elementName="system", $fontColor="#BFBFBF", $borderColor="#7A7A7A", $bgColor="transparent")
+UpdateBoundaryStyle($elementName="container", $fontColor="#BFBFBF", $borderColor="#7A7A7A", $bgColor="transparent")
+UpdateBoundaryStyle($fontColor="#BFBFBF", $borderColor="#7A7A7A", $bgColor="transparent")
+
+
+
+Person(Allegado, "Allegado", $descr="Familiar que monitorea a distancia al adulto mayor y recibe alertas.", $tags="", $link="")
+Person(Medico, "Médico", $descr="Personal médico de clínica que da seguimiento a los adultos mayores asignados.", $tags="", $link="")
+Person(Cuidador, "Cuidador", $descr="Personal de casa de reposo que supervisa a varios residentes por turno.", $tags="", $link="")
+Person(Administradordeorganizacion, "Administrador de organización", $descr="Gestiona la clínica o casa de reposo: personal, adultos mayores y asignaciones.", $tags="", $link="")
+Person(Adultomayor, "Adulto mayor", $descr="Porta el parche inteligente. No interactúa con la plataforma.", $tags="", $link="")
+System_Ext(Parcheinteligentesimulado, "Parche inteligente (simulado)", $descr="Dispositivo IoT que mide signos vitales y detecta caídas. En esta etapa se emula con un simulador de software.", $tags="", $link="")
+System_Ext(AzureCommunicationServicesEmail, "Azure Communication Services Email", $descr="Servicio gestionado de envío de correos de alerta y de credenciales.", $tags="", $link="")
+System(MediTrack, "MediTrack", $descr="Plataforma de monitoreo remoto de signos vitales y movilidad de adultos mayores.", $tags="", $link="")
+
+Rel(Adultomayor, Parcheinteligentesimulado, "Porta", $techn="", $tags="", $link="")
+Rel(Allegado, MediTrack, "Consulta signos vitales y recibe alertas", $techn="HTTPS", $tags="", $link="")
+Rel(Medico, MediTrack, "Da seguimiento a pacientes asignados", $techn="HTTPS", $tags="", $link="")
+Rel(Cuidador, MediTrack, "Supervisa residentes y atiende alertas", $techn="HTTPS", $tags="", $link="")
+Rel(Administradordeorganizacion, MediTrack, "Gestiona personal, adultos mayores y asignaciones", $techn="HTTPS", $tags="", $link="")
+Rel(Parcheinteligentesimulado, MediTrack, "Envía lecturas de signos vitales y eventos de caída", $techn="", $tags="", $link="")
+Rel(MediTrack, AzureCommunicationServicesEmail, "Envía correos", $techn="HTTPS", $tags="", $link="")
+
+
+@enduml
