@@ -8,6 +8,8 @@ services:
     url: ${DEVICES_SERVICE_URL}
   relatives:
     url: ${RELATIVES_SERVICE_URL}
+  monitoring:
+    url: ${MONITORING_SERVICE_URL}
 
 authorization:
   jwt:

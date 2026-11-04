@@ -43,13 +43,18 @@ spring:
               predicates:
                 - Path=/api/v1/organizations/**,/api/v1/admins/**,/api/v1/caregivers/**,/api/v1/doctors/**,/api/v1/senior-citizens/**,/api/v1/caregiver-assignments/**,/api/v1/doctor-assignments/**
 
+            # ---------- Monitoring (vital sign measurements and alerts) ----------
+            # Must stay ABOVE devices-service: /api/v1/devices/{id}/measurements/** also matches /api/v1/devices/**
+            - id: monitoring-service
+              uri: ${services.monitoring.url}
+              predicates:
+                - Path=/api/v1/devices/*/measurements/**,/api/v1/alerts/**
+
             # ---------- Devices (smart patches) ----------
-            # Measurements and alerts are still served by devices-service. When monitoring-service
-            # is integrated, add its route ABOVE this one (see README.md).
             - id: devices-service
               uri: ${services.devices.url}
               predicates:
-                - Path=/api/v1/devices/**,/api/v1/alerts/**
+                - Path=/api/v1/devices/**
 
             # ---------- Relatives ----------
             - id: relatives-service
@@ -81,6 +86,13 @@ spring:
               filters:
                 - RewritePath=/devices-service/(?<segment>.*), /$\{segment}
                 - PreserveHostHeader
+            - id: monitoring-service-docs
+              uri: ${services.monitoring.url}
+              predicates:
+                - Path=/monitoring-service/v3/api-docs
+              filters:
+                - RewritePath=/monitoring-service/(?<segment>.*), /$\{segment}
+                - PreserveHostHeader
             - id: relatives-service-docs
               uri: ${services.relatives.url}
               predicates:
@@ -99,6 +111,8 @@ services:
     url: http://localhost:8083
   relatives:
     url: http://localhost:8084
+  monitoring:
+    url: http://localhost:8085
 
 # Same secret as iam-service: the gateway only validates tokens, it does not issue them
 authorization:
@@ -120,6 +134,8 @@ springdoc:
         url: /devices-service/v3/api-docs
       - name: relatives-service
         url: /relatives-service/v3/api-docs
+      - name: monitoring-service
+        url: /monitoring-service/v3/api-docs
 
 # Health endpoint used as execution evidence: http://localhost:8080/actuator/health
 management:
