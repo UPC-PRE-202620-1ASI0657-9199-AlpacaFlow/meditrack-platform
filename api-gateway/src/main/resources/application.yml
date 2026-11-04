@@ -1,0 +1,129 @@
+# MediTrack API Gateway
+# Single entry point: the frontend calls http://localhost:8080 and the gateway routes
+# each request to the microservice that owns the bounded context.
+
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      server:
+        webflux:
+          # The microservices also add CORS headers: keep only one copy in the response
+          default-filters:
+            - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials Vary, RETAIN_FIRST
+          globalcors:
+            cors-configurations:
+              '[/**]':
+                allowed-origin-patterns:
+                  - "http://localhost:4200"
+                  - "http://localhost:*"
+                  - "https://*.vercel.app"
+                  - "https://*.netlify.app"
+                  - "https://*.azurewebsites.net"
+                  - "https://*.github.io"
+                allowed-methods: [GET, POST, PUT, DELETE, PATCH, OPTIONS]
+                allowed-headers: "*"
+                exposed-headers: [Authorization, Content-Type]
+                allow-credentials: true
+                max-age: 3600
+          routes:
+            # ---------- IAM (users, sign-in, sign-up) ----------
+            - id: iam-service
+              uri: ${services.iam.url}
+              predicates:
+                - Path=/api/v1/authentication/**,/api/v1/users/**,/temp-api/v1/users/**
+
+            # ---------- Organization (organizations, staff, senior citizens, assignments) ----------
+            - id: organization-service
+              uri: ${services.organization.url}
+              predicates:
+                - Path=/api/v1/organizations/**,/api/v1/admins/**,/api/v1/caregivers/**,/api/v1/doctors/**,/api/v1/senior-citizens/**,/api/v1/caregiver-assignments/**,/api/v1/doctor-assignments/**
+
+            # ---------- Devices (smart patches) ----------
+            # Measurements and alerts are still served by devices-service. When monitoring-service
+            # is integrated, add its route ABOVE this one (see README.md).
+            - id: devices-service
+              uri: ${services.devices.url}
+              predicates:
+                - Path=/api/v1/devices/**,/api/v1/alerts/**
+
+            # ---------- Relatives ----------
+            - id: relatives-service
+              uri: ${services.relatives.url}
+              predicates:
+                - Path=/api/v1/relatives/**
+
+            # ---------- OpenAPI documents of each microservice (unified Swagger UI) ----------
+            # PreserveHostHeader makes each service publish the gateway URL as its server,
+            # so "Try it out" in Swagger also goes through the gateway.
+            - id: iam-service-docs
+              uri: ${services.iam.url}
+              predicates:
+                - Path=/iam-service/v3/api-docs
+              filters:
+                - RewritePath=/iam-service/(?<segment>.*), /$\{segment}
+                - PreserveHostHeader
+            - id: organization-service-docs
+              uri: ${services.organization.url}
+              predicates:
+                - Path=/organization-service/v3/api-docs
+              filters:
+                - RewritePath=/organization-service/(?<segment>.*), /$\{segment}
+                - PreserveHostHeader
+            - id: devices-service-docs
+              uri: ${services.devices.url}
+              predicates:
+                - Path=/devices-service/v3/api-docs
+              filters:
+                - RewritePath=/devices-service/(?<segment>.*), /$\{segment}
+                - PreserveHostHeader
+            - id: relatives-service-docs
+              uri: ${services.relatives.url}
+              predicates:
+                - Path=/relatives-service/v3/api-docs
+              filters:
+                - RewritePath=/relatives-service/(?<segment>.*), /$\{segment}
+                - PreserveHostHeader
+
+# Microservice locations (override with environment variables in production)
+services:
+  iam:
+    url: http://localhost:8081
+  organization:
+    url: http://localhost:8082
+  devices:
+    url: http://localhost:8083
+  relatives:
+    url: http://localhost:8084
+
+# Same secret as iam-service: the gateway only validates tokens, it does not issue them
+authorization:
+  jwt:
+    secret: WriteHereYourSecretStringForTokenSigningCredentials
+
+# Unified Swagger UI: http://localhost:8080/swagger-ui.html
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    path: /swagger-ui.html
+    urls:
+      - name: iam-service
+        url: /iam-service/v3/api-docs
+      - name: organization-service
+        url: /organization-service/v3/api-docs
+      - name: devices-service
+        url: /devices-service/v3/api-docs
+      - name: relatives-service
+        url: /relatives-service/v3/api-docs
+
+# Health endpoint used as execution evidence: http://localhost:8080/actuator/health
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health

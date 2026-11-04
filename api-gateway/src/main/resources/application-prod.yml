@@ -1,0 +1,14 @@
+# Production profile: service locations and secret come from environment variables
+services:
+  iam:
+    url: ${IAM_SERVICE_URL}
+  organization:
+    url: ${ORGANIZATION_SERVICE_URL}
+  devices:
+    url: ${DEVICES_SERVICE_URL}
+  relatives:
+    url: ${RELATIVES_SERVICE_URL}
+
+authorization:
+  jwt:
+    secret: ${JWT_SECRET}
