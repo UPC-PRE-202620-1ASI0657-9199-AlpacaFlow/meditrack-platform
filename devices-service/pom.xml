@@ -12,7 +12,7 @@
     <artifactId>devices-service</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>devices-service</name>
-    <description>MediTrack Devices Service: smart patches, vital sign measurements and alerts</description>
+    <description>MediTrack Devices Service: smart patch registration and lookup</description>
     <url/>
     <licenses>
         <license/>

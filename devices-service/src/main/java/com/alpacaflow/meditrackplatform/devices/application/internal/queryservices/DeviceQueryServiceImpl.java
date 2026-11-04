@@ -1,8 +1,6 @@
 package com.alpacaflow.meditrackplatform.devices.application.internal.queryservices;
 
-import com.alpacaflow.meditrackplatform.devices.domain.exceptions.DeviceNotFoundException;
 import com.alpacaflow.meditrackplatform.devices.domain.model.aggregates.Device;
-import com.alpacaflow.meditrackplatform.devices.domain.model.entities.*;
 import com.alpacaflow.meditrackplatform.devices.domain.model.queries.*;
 import com.alpacaflow.meditrackplatform.devices.domain.services.DeviceQueryService;
 import com.alpacaflow.meditrackplatform.devices.infrastructure.persistence.jpa.repositories.DeviceRepository;
@@ -34,33 +32,4 @@ public class DeviceQueryServiceImpl implements DeviceQueryService {
     public List<Device> handle(GetAllDevicesQuery query) {
         return deviceRepository.findAll();
     }
-
-    @Override
-    public List<BloodPressureMeasurement> handle(GetAllBloodPressureMeasurementsByDeviceIdQuery query) {
-        var device = deviceRepository.findById(query.deviceId())
-                .orElseThrow(() -> new DeviceNotFoundException(query.deviceId()));
-        return device.getBloodPressureMeasurements();
-    }
-
-    @Override
-    public List<HeartRateMeasurement> handle(GetAllHeartRateMeasurementsByDeviceIdQuery query) {
-        var device = deviceRepository.findById(query.deviceId())
-                .orElseThrow(() -> new DeviceNotFoundException(query.deviceId()));
-        return device.getHeartRateMeasurements();
-    }
-
-    @Override
-    public List<TemperatureMeasurement> handle(GetAllTemperatureMeasurementsByDeviceIdQuery query) {
-        var device = deviceRepository.findById(query.deviceId())
-                .orElseThrow(() -> new DeviceNotFoundException(query.deviceId()));
-        return device.getTemperatureMeasurements();
-    }
-
-    @Override
-    public List<OxygenMeasurement> handle(GetAllOxygenMeasurementsByDeviceIdQuery query) {
-        var device = deviceRepository.findById(query.deviceId())
-                .orElseThrow(() -> new DeviceNotFoundException(query.deviceId()));
-        return device.getOxygenMeasurements();
-    }
 }
-

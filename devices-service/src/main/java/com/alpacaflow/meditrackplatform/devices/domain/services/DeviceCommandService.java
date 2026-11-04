@@ -1,9 +1,6 @@
 package com.alpacaflow.meditrackplatform.devices.domain.services;
 
-import com.alpacaflow.meditrackplatform.devices.domain.model.aggregates.Device;
 import com.alpacaflow.meditrackplatform.devices.domain.model.commands.*;
-
-import java.util.Optional;
 
 /**
  * DeviceCommandService
@@ -17,37 +14,4 @@ public interface DeviceCommandService {
      * @see CreateDeviceCommand
      */
     Long handle(CreateDeviceCommand command);
-
-    /**
-     * Handle an add blood pressure measurement to device command
-     * @param command The command containing the measurement data
-     * @return The updated device
-     * @see AddBloodPressureMeasurementToDeviceCommand
-     */
-    Optional<Device> handle(AddBloodPressureMeasurementToDeviceCommand command);
-
-    /**
-     * Handle an add heart rate measurement to device command
-     * @param command The command containing the measurement data
-     * @return The updated device
-     * @see AddHeartRateMeasurementToDeviceCommand
-     */
-    Optional<Device> handle(AddHeartRateMeasurementToDeviceCommand command);
-
-    /**
-     * Handle an add temperature measurement to device command
-     * @param command The command containing the measurement data
-     * @return The updated device
-     * @see AddTemperatureMeasurementToDeviceCommand
-     */
-    Optional<Device> handle(AddTemperatureMeasurementToDeviceCommand command);
-
-    /**
-     * Handle an add oxygen measurement to device command
-     * @param command The command containing the measurement data
-     * @return The updated device
-     * @see AddOxygenMeasurementToDeviceCommand
-     */
-    Optional<Device> handle(AddOxygenMeasurementToDeviceCommand command);
 }
-

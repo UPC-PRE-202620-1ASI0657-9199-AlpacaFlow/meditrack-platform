@@ -1,7 +1,6 @@
 package com.alpacaflow.meditrackplatform.devices.domain.services;
 
 import com.alpacaflow.meditrackplatform.devices.domain.model.aggregates.Device;
-import com.alpacaflow.meditrackplatform.devices.domain.model.entities.*;
 import com.alpacaflow.meditrackplatform.devices.domain.model.queries.*;
 
 import java.util.List;
@@ -27,36 +26,4 @@ public interface DeviceQueryService {
      * @see GetAllDevicesQuery
      */
     List<Device> handle(GetAllDevicesQuery query);
-
-    /**
-     * Handle a get all blood pressure measurements by device id query
-     * @param query The query containing the device id
-     * @return List of blood pressure measurements
-     * @see GetAllBloodPressureMeasurementsByDeviceIdQuery
-     */
-    List<BloodPressureMeasurement> handle(GetAllBloodPressureMeasurementsByDeviceIdQuery query);
-
-    /**
-     * Handle a get all heart rate measurements by device id query
-     * @param query The query containing the device id
-     * @return List of heart rate measurements
-     * @see GetAllHeartRateMeasurementsByDeviceIdQuery
-     */
-    List<HeartRateMeasurement> handle(GetAllHeartRateMeasurementsByDeviceIdQuery query);
-
-    /**
-     * Handle a get all temperature measurements by device id query
-     * @param query The query containing the device id
-     * @return List of temperature measurements
-     * @see GetAllTemperatureMeasurementsByDeviceIdQuery
-     */
-    List<TemperatureMeasurement> handle(GetAllTemperatureMeasurementsByDeviceIdQuery query);
-
-    /**
-     * Handle a get all oxygen measurements by device id query
-     * @param query The query containing the device id
-     * @return List of oxygen measurements
-     * @see GetAllOxygenMeasurementsByDeviceIdQuery
-     */
-    List<OxygenMeasurement> handle(GetAllOxygenMeasurementsByDeviceIdQuery query);
 }

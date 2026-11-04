@@ -4,14 +4,13 @@ MediTrack microservice for the **Devices** bounded context, extracted from the `
 
 ## Responsibilities
 - Smart patches (devices) registration and lookup.
-- Vital sign measurements per device: heart rate, oxygen, temperature and blood pressure.
-- Alerts generated when a measurement is out of range.
+- Since Sprint 2, vital sign measurements and alerts belong to `monitoring-service` (port 8085),
+  which asks this service whether a device exists before storing its first measurement.
 
 ## Changes from the monolith
 - Own Spring Boot application (`DevicesServiceApplication`) on port **8083**.
 - Own database: `meditrack_devices` (database per service).
-- This context had no in-memory dependencies on other bounded contexts, so no anti-corruption layer was needed.
-  The internal domain event `AlertCreatedEvent` stays inside the service.
+- This context has no in-memory dependencies on other bounded contexts, so no anti-corruption layer is needed.
 - Does not store users: it only validates JWTs issued by `iam-service` (shared secret).
 
 ## Run
