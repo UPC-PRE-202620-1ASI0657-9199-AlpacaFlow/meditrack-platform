@@ -10,6 +10,8 @@ services:
     url: ${RELATIVES_SERVICE_URL}
   monitoring:
     url: ${MONITORING_SERVICE_URL}
+  notifications:
+    url: ${NOTIFICATIONS_SERVICE_URL}
 
 authorization:
   jwt:

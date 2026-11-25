@@ -56,6 +56,12 @@ spring:
               predicates:
                 - Path=/api/v1/devices/**
 
+            # ---------- Notifications (notices created from health alerts) ----------
+            - id: notification-service
+              uri: ${services.notifications.url}
+              predicates:
+                - Path=/api/v1/notifications/**
+
             # ---------- Relatives ----------
             - id: relatives-service
               uri: ${services.relatives.url}
@@ -93,6 +99,13 @@ spring:
               filters:
                 - RewritePath=/monitoring-service/(?<segment>.*), /$\{segment}
                 - PreserveHostHeader
+            - id: notification-service-docs
+              uri: ${services.notifications.url}
+              predicates:
+                - Path=/notification-service/v3/api-docs
+              filters:
+                - RewritePath=/notification-service/(?<segment>.*), /$\{segment}
+                - PreserveHostHeader
             - id: relatives-service-docs
               uri: ${services.relatives.url}
               predicates:
@@ -113,6 +126,8 @@ services:
     url: http://localhost:8084
   monitoring:
     url: http://localhost:8085
+  notifications:
+    url: http://localhost:8086
 
 # Same secret as iam-service: the gateway only validates tokens, it does not issue them
 authorization:
@@ -136,6 +151,8 @@ springdoc:
         url: /relatives-service/v3/api-docs
       - name: monitoring-service
         url: /monitoring-service/v3/api-docs
+      - name: notification-service
+        url: /notification-service/v3/api-docs
 
 # Health endpoint used as execution evidence: http://localhost:8080/actuator/health
 management:
