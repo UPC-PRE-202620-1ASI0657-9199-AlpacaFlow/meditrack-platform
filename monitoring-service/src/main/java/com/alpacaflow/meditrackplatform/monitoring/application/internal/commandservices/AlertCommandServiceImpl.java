@@ -1,5 +1,6 @@
 package com.alpacaflow.meditrackplatform.monitoring.application.internal.commandservices;
 
+import com.alpacaflow.meditrackplatform.monitoring.application.internal.outboundservices.acl.ExternalNotificationService;
 import com.alpacaflow.meditrackplatform.monitoring.domain.model.aggregates.Alert;
 import com.alpacaflow.meditrackplatform.monitoring.domain.model.commands.CreateAlertCommand;
 import com.alpacaflow.meditrackplatform.monitoring.domain.services.AlertCommandService;
@@ -8,16 +9,20 @@ import org.springframework.stereotype.Service;
 
 /**
  * Implementation of the AlertCommandService interface.
- * <p>This class is responsible for handling the commands related to the Alert aggregate. It requires an AlertRepository.</p>
+ * <p>Saves the alert and then asks the Notification Service to notify it.</p>
  * @see AlertCommandService
  * @see AlertRepository
+ * @see ExternalNotificationService
  */
 @Service
 public class AlertCommandServiceImpl implements AlertCommandService {
     private final AlertRepository alertRepository;
+    private final ExternalNotificationService externalNotificationService;
 
-    public AlertCommandServiceImpl(AlertRepository alertRepository) {
+    public AlertCommandServiceImpl(AlertRepository alertRepository,
+                                   ExternalNotificationService externalNotificationService) {
         this.alertRepository = alertRepository;
+        this.externalNotificationService = externalNotificationService;
     }
 
     @Override
@@ -28,7 +33,7 @@ public class AlertCommandServiceImpl implements AlertCommandService {
         } catch (Exception e) {
             throw new IllegalArgumentException("Error saving alert: %s".formatted(e.getMessage()));
         }
+        externalNotificationService.notifyAlert(alert);
         return alert.getId();
     }
 }
-
