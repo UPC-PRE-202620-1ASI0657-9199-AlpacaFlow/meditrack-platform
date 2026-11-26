@@ -16,6 +16,23 @@ MediTrack Platform, illustrating development with Java, Spring Boot Framework, a
 ## Bounded Contexts
 This version of MediTrack Platform is divided into these bounded contexts:
 
+## Run with Docker
+Requirements: Docker Desktop (no local JDK, Maven or MySQL needed).
+
+```bash
+docker compose up --build -d     # MySQL + 6 microservices + API Gateway
+docker compose ps                # all containers Up, mysql (healthy)
+docker compose down              # stop (add -v to also delete the database volume)
+```
+
+- API Gateway (only published port): http://localhost:8080
+- Unified Swagger UI: http://localhost:8080/swagger-ui.html
+- Health: http://localhost:8080/actuator/health
+
+All services share the root `Dockerfile` (multi-stage: Maven build, JRE runtime).
+`docker-compose.yml` overrides each service's `application.properties` with environment
+variables, so the services reach MySQL and each other by container name instead of `localhost`.
+
 ### Reference Documentation
 
 For further reference, please consider the following sections:
