@@ -1,0 +1,88 @@
+# MediTrack platform: MySQL + 6 microservices + API Gateway.
+# Run: docker compose up --build   ->  http://localhost:8080/swagger-ui.html
+# Environment variables override application.properties (Spring relaxed binding),
+# so the services reach each other by container name instead of localhost.
+
+x-db: &db
+  SPRING_DATASOURCE_USERNAME: root
+  SPRING_DATASOURCE_PASSWORD: admin
+
+x-service: &service
+  depends_on:
+    mysql:
+      condition: service_healthy
+
+services:
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_ROOT_PASSWORD: admin
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-padmin"]
+      interval: 5s
+      retries: 20
+
+  iam-service:
+    <<: *service
+    build: { context: iam-service, dockerfile: ../Dockerfile }
+    environment:
+      <<: *db
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/meditrack_iam?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SERVICES_ORGANIZATION_URL: http://organization-service:8082
+
+  organization-service:
+    <<: *service
+    build: { context: organization-service, dockerfile: ../Dockerfile }
+    environment:
+      <<: *db
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/meditrack_organization?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SERVICES_IAM_URL: http://iam-service:8081
+
+  devices-service:
+    <<: *service
+    build: { context: devices-service, dockerfile: ../Dockerfile }
+    environment:
+      <<: *db
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/meditrack_devices?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+
+  relatives-service:
+    <<: *service
+    build: { context: relatives-service, dockerfile: ../Dockerfile }
+    environment:
+      <<: *db
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/meditrack_relatives?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SERVICES_ORGANIZATION_URL: http://organization-service:8082
+
+  monitoring-service:
+    <<: *service
+    build: { context: monitoring-service, dockerfile: ../Dockerfile }
+    environment:
+      <<: *db
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/meditrack_monitoring?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SERVICES_DEVICES_URL: http://devices-service:8083
+      SERVICES_NOTIFICATIONS_URL: http://notification-service:8086
+
+  notification-service:
+    <<: *service
+    build: { context: notification-service, dockerfile: ../Dockerfile }
+    environment:
+      <<: *db
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/meditrack_notifications?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+
+  # Only the gateway is published to the host: the microservices are reachable only through it
+  api-gateway:
+    build: { context: api-gateway, dockerfile: ../Dockerfile }
+    ports:
+      - "8080:8080"
+    environment:
+      SERVICES_IAM_URL: http://iam-service:8081
+      SERVICES_ORGANIZATION_URL: http://organization-service:8082
+      SERVICES_DEVICES_URL: http://devices-service:8083
+      SERVICES_RELATIVES_URL: http://relatives-service:8084
+      SERVICES_MONITORING_URL: http://monitoring-service:8085
+      SERVICES_NOTIFICATIONS_URL: http://notification-service:8086
+
+volumes:
+  mysql-data:
